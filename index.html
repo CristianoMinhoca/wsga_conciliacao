@@ -861,19 +861,28 @@ function resetarDados(){
 
 
 // ── USUÁRIOS ──────────────────────────────────────────
-var USUARIOS_LOGIN = {
-  'admin':      'Admin@2026',
-  'financeiro': 'Fin@2026',
-  'diretor':    'Dir@2026',
-  'conciliacao':'Conc@2026'
+// Estrutura: { usuario: { senha, perfil } }
+var USUARIOS_DB = {
+  'admin':       { senha:'Admin@2026',  perfil:'admin' },
+  'financeiro':  { senha:'Fin@2026',    perfil:'financeiro' },
+  'diretor':     { senha:'Dir@2026',    perfil:'diretor' },
+  'conciliacao': { senha:'Conc@2026',   perfil:'conciliacao' }
 };
+
+// Compatibilidade com código antigo
+var USUARIOS_LOGIN = {};
+function sincronizarLogin(){
+  USUARIOS_LOGIN = {};
+  Object.keys(USUARIOS_DB).forEach(function(u){ USUARIOS_LOGIN[u] = USUARIOS_DB[u].senha; });
+}
+sincronizarLogin();
 
 var usuarioAtual = null;
 
 function fazerLogin(){
   var user = document.getElementById('loginUser').value.trim().toLowerCase();
   var pass = document.getElementById('loginPass').value;
-  if(USUARIOS_LOGIN[user] && USUARIOS_LOGIN[user] === pass){
+  if(USUARIOS_DB[user] && USUARIOS_DB[user].senha === pass){
     usuarioAtual = user;
     document.getElementById('loginErro').style.display = 'none';
 
@@ -900,7 +909,7 @@ function entrarNoSistema(user){
   localStorage.setItem('csb_usuario', user);
   document.getElementById('loginOverlay').style.display = 'none';
   document.getElementById('senhaOverlay').classList.remove('on');
-  document.getElementById('userBadge').textContent = '● '+user;
+  document.getElementById('userBadge').textContent = '● '+user+' ('+getPerfilLabel(getPerfil(user))+')';
   registrarLog('LOGIN', 'Acesso ao sistema');
   carregarDados();
   buildAll();
@@ -1006,29 +1015,44 @@ function limparLog(){
 // ── GESTÃO DE USUÁRIOS ────────────────────────────────
 function carregarUsuarios(){
   try{
-    var saved = localStorage.getItem('csb_usuarios');
-    if(saved) USUARIOS_LOGIN = Object.assign({}, USUARIOS_LOGIN, JSON.parse(saved));
-  }catch(e){}
+    var saved = localStorage.getItem('csb_usuarios_v2');
+    if(saved){
+      var db = JSON.parse(saved);
+      USUARIOS_DB = Object.assign({}, USUARIOS_DB, db);
+      sincronizarLogin();
+    }
+  }catch(e){ console.log('Erro carregarUsuarios:',e); }
 }
 
 function salvarUsuarios(){
-  localStorage.setItem('csb_usuarios', JSON.stringify(USUARIOS_LOGIN));
+  localStorage.setItem('csb_usuarios_v2', JSON.stringify(USUARIOS_DB));
+  sincronizarLogin();
+}
+
+function getPerfil(user){
+  return USUARIOS_DB[user] ? USUARIOS_DB[user].perfil : 'conciliacao';
+}
+
+function getPerfilLabel(perfil){
+  var map = {admin:'Admin',diretor:'Diretor',financeiro:'Financeiro',conciliacao:'Conciliação'};
+  return map[perfil] || 'Conciliação';
 }
 
 function renderUsuarios(){
-  var users = Object.keys(USUARIOS_LOGIN);
+  var users = Object.keys(USUARIOS_DB);
   var rows = users.map(function(u){
     var isAtual = u === usuarioAtual;
-    var btnExcluir = isAtual
+    var perfil = USUARIOS_DB[u].perfil || 'conciliacao';
+    var perfilLabel = getPerfilLabel(perfil);
+    var acoes = isAtual
       ? '<span style="font-size:11px;color:var(--tx3)">usuário atual</span>'
-      : '<button style="padding:3px 9px;border-radius:5px;font-size:11px;border:1px solid #FECACA;background:#FEF2F2;color:#991B1B;cursor:pointer" onclick="excluirUsuario(\'' + u + '\')">Excluir</button>';
+      : '<button onclick="editarUsuario(\'' + u + '\')" style="padding:3px 9px;border-radius:5px;font-size:11px;border:1px solid #E2E0D8;background:#fff;color:#1A1917;cursor:pointer;margin-right:4px">✏ Editar</button>'
+        + '<button onclick="excluirUsuario(\'' + u + '\')" style="padding:3px 9px;border-radius:5px;font-size:11px;border:1px solid #FECACA;background:#FEF2F2;color:#991B1B;cursor:pointer">Excluir</button>';
     return '<tr style="font-size:13px">'
       + '<td style="padding:10px 14px;font-weight:500">' + u + '</td>'
       + '<td style="padding:10px 14px;color:#6B6960">••••••••</td>'
-      + '<td style="padding:10px 14px"><span style="background:#EEF3FD;color:#1B4FD8;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">'
-      + (u==='admin'?'Admin':u==='diretor'?'Diretor':u==='financeiro'?'Financeiro':'Conciliação')
-      + '</span></td>'
-      + '<td style="padding:10px 14px">' + btnExcluir + '</td>'
+      + '<td style="padding:10px 14px"><span style="background:#EEF3FD;color:#1B4FD8;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">' + perfilLabel + '</span></td>'
+      + '<td style="padding:10px 14px">' + acoes + '</td>'
       + '</tr>';
   }).join('');
   document.getElementById('usrBody').innerHTML =
@@ -1049,7 +1073,7 @@ function criarUsuario(){
   if(!user || !pass){ toast('Preencha usuário e senha','err'); return; }
   if(pass.length < 6){ toast('Senha mínimo 6 caracteres','err'); return; }
   if(USUARIOS_LOGIN[user]){ toast('Usuário já existe','err'); return; }
-  USUARIOS_LOGIN[user] = pass;
+  USUARIOS_DB[user] = { senha: pass, perfil: perfil };
   salvarUsuarios();
   // marcar como primeiro login
   var primeiroLogin = JSON.parse(localStorage.getItem('csb_primeiro_login') || '{}');
@@ -1068,12 +1092,53 @@ function excluirUsuarioById(btn){
 }
 
 function excluirUsuario(user){
+  if(user === 'admin'){ toast('Não é possível excluir o admin','err'); return; }
   if(!confirm('Excluir usuário "'+user+'"?')) return;
-  delete USUARIOS_LOGIN[user];
+  delete USUARIOS_DB[user];
   salvarUsuarios();
   renderUsuarios();
   registrarLog('EXCLUIR_USUARIO', 'Usuário excluído: '+user);
-  toast('Usuário excluído','ok');
+  toast('Usuário '+user+' excluído','ok');
+}
+
+function editarUsuario(user){
+  var u = USUARIOS_DB[user];
+  if(!u) return;
+  var div = document.createElement('div');
+  div.id = 'editUserModal';
+  div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:400';
+  div.innerHTML = '<div style="background:#fff;border-radius:12px;padding:24px;width:400px;box-shadow:0 8px 32px rgba(0,0,0,.14)">'
+    +'<div style="font-size:15px;font-weight:600;margin-bottom:16px">Editar usuário: '+user+'</div>'
+    +'<label style="font-size:11px;font-weight:600;color:#6B6960;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Nova senha (deixe em branco para manter)</label>'
+    +'<input id="editSenha" type="password" placeholder="Nova senha (opcional)" style="width:100%;border:1px solid #E2E0D8;border-radius:7px;padding:8px 10px;font-size:13px;font-family:inherit;outline:none;margin-bottom:12px">'
+    +'<label style="font-size:11px;font-weight:600;color:#6B6960;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Perfil</label>'
+    +'<select id="editPerfil" style="width:100%;border:1px solid #E2E0D8;border-radius:7px;padding:8px 10px;font-size:13px;font-family:inherit;outline:none;margin-bottom:16px">'
+    +'<option value="conciliacao"'+(u.perfil==='conciliacao'?' selected':'')+'>Conciliação</option>'
+    +'<option value="financeiro"'+(u.perfil==='financeiro'?' selected':'')+'>Financeiro</option>'
+    +'<option value="diretor"'+(u.perfil==='diretor'?' selected':'')+'>Diretor</option>'
+    +'<option value="admin"'+(u.perfil==='admin'?' selected':'')+'>Admin</option>'
+    +'</select>'
+    +'<div style="display:flex;gap:8px;justify-content:flex-end">'
+    +'<button onclick="fecharEditUser()" style="padding:7px 14px;border:1px solid #E2E0D8;background:none;border-radius:6px;cursor:pointer;font-size:13px">Cancelar</button>'
+    +'<button id="btnSalvarEdit" style="padding:7px 16px;background:#1B4FD8;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">Salvar</button>'
+    +'</div></div>';
+  document.body.appendChild(div);
+  document.getElementById('btnSalvarEdit').onclick = function(){ salvarEdicaoUsuario(user); };
+}
+
+function fecharEditUser(){ var m=document.getElementById('editUserModal'); if(m) m.remove(); }
+
+function salvarEdicaoUsuario(user){
+  var novaSenha = document.getElementById('editSenha').value;
+  var novoPerfil = document.getElementById('editPerfil').value;
+  if(novaSenha && novaSenha.length < 6){ toast('Senha mínimo 6 caracteres','err'); return; }
+  if(novaSenha) USUARIOS_DB[user].senha = novaSenha;
+  USUARIOS_DB[user].perfil = novoPerfil;
+  salvarUsuarios();
+  document.getElementById('editUserModal').remove();
+  renderUsuarios();
+  registrarLog('EDITAR_USUARIO', 'Usuário editado: '+user+' | Perfil: '+novoPerfil+(novaSenha?' | Senha alterada':''));
+  toast('Usuário '+user+' atualizado!','ok');
 }
 
 // ── EDITAR OBSERVAÇÃO ─────────────────────────────────
