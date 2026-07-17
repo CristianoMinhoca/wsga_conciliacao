@@ -305,7 +305,7 @@ tbody tr:hover td{background:var(--bg)}
 <script>
 // ── DADOS DIRETOS DA PLANILHA ──────────────────────────
 var CONTAS = [
-  {id:0,  emp:'PALLAS  Torcida Brasil - 82',          banco:'BRADESCO',          ag:'3381', conta:'5075',         sB:21636.39,   sC:2721.92,       pag:0,       obs:''},
+  {id:0,  emp:'PALLAS  Torcida Brasil - 82',          banco:'BRADESCO',          ag:'3381', conta:'5075',         sB:21636.39,   sC:2721.92,       pag:0,       obs:'Saldo a conciliar divergente do banco'},
   {id:1,  emp:'PALLAS - CSC 18 - Rateios estruturais',banco:'BRADESCO',          ag:'3381', conta:'7467-5',       sB:750585.25,  sC:750585.25,     pag:0,       obs:''},
   {id:2,  emp:'PALLAS - CSC 18',                      banco:'BRADESCO',          ag:'3381', conta:'336353-8',     sB:1340379.45, sC:1340379.45,    pag:0,       obs:''},
   {id:3,  emp:'PRESC VIAGENS E TURISMO LTDA 27',       banco:'SANTANDER',         ag:'4717', conta:'13-002811-1',  sB:143.52,     sC:143.52,        pag:0,       obs:''},
@@ -314,7 +314,7 @@ var CONTAS = [
   {id:6,  emp:'PRESC VIAG E TUR - CARTAO 27',          banco:'BRADESCO',          ag:'3381', conta:'13315-9',      sB:1853.87,    sC:1853.87,       pag:0,       obs:''},
   {id:7,  emp:'PRESC VIAGENS E TURISMO LTDA 27',       banco:'BRADESCO',          ag:'3381', conta:'24232-2',      sB:6963.75,    sC:6963.75,       pag:0,       obs:''},
   {id:8,  emp:'PRESC/CBF EMPRESA 69',                  banco:'BRADESCO',          ag:'3381', conta:'25890-3',      sB:303283.23,  sC:303182.05,     pag:-4149.5, obs:'Pag -4.149,50'},
-  {id:9,  emp:'PRESC/CBF EMP 69 - CBF',                banco:'RENDIMENTO',        ag:'001',  conta:'0520187005',   sB:3157002.34, sC:-5484281.10,   pag:0,       obs:'ATENCAO: conciliar negativo'},
+  {id:9,  emp:'PRESC/CBF EMP 69 - CBF',                banco:'RENDIMENTO',        ag:'001',  conta:'0520187005',   sB:3157002.34, sC:-5484281.10,   pag:0,       obs:'ATENÇÃO: saldo a conciliar negativo'},
   {id:10, emp:'PRESC/CBF EMP 69 - APLIC.',             banco:'REND/APLICACAO',    ag:'001',  conta:'0520187005A',  sB:0,          sC:0,             pag:0,       obs:''},
   {id:11, emp:'PRESC/CBF EMP 69 Reservas',             banco:'SANTANDER/Reservas',ag:'3439', conta:'130042335',    sB:1770983.73, sC:10612267.17,   pag:0,       obs:'Conciliar > Banco'},
   {id:12, emp:'ASANKA 75',                             banco:'BRADESCO',          ag:'3381', conta:'6350-9',       sB:3383.17,    sC:3383.17,       pag:0,       obs:''},
@@ -328,9 +328,9 @@ var CONTAS = [
   {id:20, emp:'INTERNACIONAL/NESTTRAVEL 49',           banco:'BRADESCO/ADM',      ag:'3381', conta:'7172-2',       sB:34052.11,   sC:34052.11,      pag:0,       obs:''},
   {id:21, emp:'NESTTRAVEL CORRETORA 85',               banco:'BRADESCO',          ag:'3381', conta:'7468-3',       sB:75895.89,   sC:75895.89,      pag:0,       obs:''},
   {id:22, emp:'NESTTRAVEL CORRETORA 85',               banco:'RENDIMENTO',        ag:'0001', conta:'52288-8',      sB:668189.37,  sC:668189.37,     pag:0,       obs:'Aplic: R$ 1.742.601,68'},
-  {id:23, emp:'ASSETURR - C. de Ferias 26',            banco:'Santander',         ag:'3934', conta:'130017082',    sB:22618.58,   sC:22618.58,      pag:0,       obs:'Pre-datados: -30.000'},
+  {id:23, emp:'ASSETURR - C. de Ferias 26',            banco:'Santander',         ag:'3934', conta:'130017082',    sB:22618.58,   sC:22618.58,      pag:0,       obs:'Pré-datados: -30.000'},
   {id:24, emp:'ASSETURR - Loja 26 - Comissoes Copa',   banco:'BRADESCO',          ag:'3381', conta:'20055-7',      sB:2171.49,    sC:2171.49,       pag:0,       obs:''},
-  {id:25, emp:'ASSETURR - Loja 26',                    banco:'BRADESCO',          ag:'3381', conta:'8590-1',       sB:844897.03,  sC:844897.03,     pag:-30277.8,obs:'A conciliar: R$7.128,35 | Pré-datados: R$91.245,24'},
+  {id:25, emp:'ASSETURR - Loja 26',                    banco:'BRADESCO',          ag:'3381', conta:'8590-1',       sB:844897.03,  sC:844897.03,     pag:-30277.8,obs:'Pag -30.277,80'},
   {id:26, emp:'ASSETURR - Loja 26 - Vendas Copa',      banco:'RENDIMENTO',        ag:'0001', conta:'1620780008',   sB:137.90,     sC:137.90,        pag:0,       obs:''},
   {id:27, emp:'ASSETURR - Pop Tour ADM 84',            banco:'BRADESCO',          ag:'3381', conta:'12890-2',      sB:5459.43,    sC:5459.43,       pag:0,       obs:''},
   {id:28, emp:'ASSETURR - Pop Tour Oper. 84',          banco:'BRADESCO',          ag:'3381', conta:'7163-3',       sB:278756.43,  sC:278756.43,     pag:0,       obs:''}
@@ -425,8 +425,11 @@ function renderT(){
       +'<td class="'+dc+'">'+brl(d)+'</td>'
       +'<td class="vr">'+brl(sE)+'</td>'
       +'<td><span class="sbg '+s+'">'+(s==='c'?'✓ OK':'⚠ Dif.')+'</span></td>'
-      +'<td class="obsc"><span style="font-size:11px;color:var(--tx2)">'+( c.obs||'—' )+'</span> <button onclick="editarObs('+c.id+')" style="padding:1px 6px;border-radius:4px;border:1px solid var(--bdr);background:none;cursor:pointer;font-size:10px;color:var(--tx3)">✏</button></td>'
-      +'<td><button class="abtn" onclick="openM('+c.id+')">Ver</button></td>'
+      +'<td class="obsc"><span style="font-size:11px;color:var(--tx2)" title="'+(c.obs||'')+'">'+((c.obs||'').length>30?(c.obs.substring(0,30)+'…'):(c.obs||'—'))+'</span></td>'
+      +'<td style="white-space:nowrap">'
+      +'<button class="abtn" onclick="editarObs('+c.id+')" style="margin-right:4px">✏ Obs</button>'
+      +'<button class="abtn" onclick="openM('+c.id+')">Ver</button>'
+      +'</td>'
       +'</tr>';
   }).join('');
 
@@ -632,7 +635,7 @@ async function processFiles(){
       content.push({type:'text',text:'[EXTRATO DO ERP — '+payload.erp_nome+']'});
     }
     var ctx_texto = payload.contas.map(function(c){return 'ID:'+c.id+'|EMP:'+c.emp+'|BANCO:'+c.banco+'|AG:'+(c.ag||'')+'|CONTA:'+c.conta+'|saldo_banco:'+c.sB+'|saldo_erp:'+c.sE;}).join('\n');
-    content.push({type:'text',text:'Você é analista de conciliação bancária.\nAnalise os extratos e compare com as contas abaixo.\n\nCONTAS CADASTRADAS:\n'+ctx_texto+'\n\nINSTRUÇÕES:\n1. Identifique cada conta pelo número, banco ou nome.\n2. saldo_banco = último saldo do EXTRATO NO DIA (não use Saldo Inicial).\n3. REGRA CRITICA saldo_erp: Procure a palavra exata A CONCILIAR no extrato.\\n   - Achou A CONCILIAR: use o saldo final dessa seção.\\n   - NAO achou A CONCILIAR: saldo_erp = 0 OBRIGATORIAMENTE.\\n   NUNCA copie o saldo_banco para saldo_erp. Se nao houver A CONCILIAR, saldo_erp = 0.\n4. Retorne SOMENTE JSON puro sem markdown:\n{\n  \"atualizacoes\":[{\"id\":0,\"conta\":\"numero\",\"emp\":\"nome\",\"banco\":\"banco\",\"saldo_banco\":0.00,\"saldo_erp\":0.00,\"obs\":\"motivo\"}],\n  \"nao_encontradas\":[\"conta não casada\"],\n  \"resumo\":\"análise em 2 frases\"\n}'});
+    content.push({type:'text',text:'Você é analista de conciliação bancária.\nAnalise os extratos e compare com as contas abaixo.\n\nCONTAS CADASTRADAS:\n'+ctx_texto+'\n\nINSTRUÇÕES:\n1. Identifique cada conta pelo número, banco ou nome.\n2. saldo_banco = último saldo do EXTRATO NO DIA (não use Saldo Inicial).\n3. REGRA CRITICA saldo_erp: Procure a palavra exata A CONCILIAR no extrato.\\n   - Achou A CONCILIAR: use o saldo final dessa seção.\\n   - NAO achou A CONCILIAR: saldo_erp = 0 OBRIGATORIAMENTE.\\n   NUNCA copie o saldo_banco para saldo_erp. Se nao houver A CONCILIAR, saldo_erp = 0.\n4. NAO inclua campo obs no JSON. Retorne SOMENTE JSON puro sem markdown:\n{\n  \"atualizacoes\":[{\"id\":0,\"conta\":\"numero\",\"emp\":\"nome\",\"banco\":\"banco\",\"saldo_banco\":0.00,\"saldo_erp\":0.00,}],\n  \"nao_encontradas\":[\"conta não casada\"],\n  \"resumo\":\"análise em 2 frases\"\n}'});
     var res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':'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','anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
@@ -734,7 +737,7 @@ function applyUpdate(){
     if(c){
       if(u.saldo_banco!=null && u.saldo_banco!==0) c.sB = u.saldo_banco;
       c.sE = (u.saldo_erp!=null) ? Number(u.saldo_erp) : c.sE;
-      if(u.obs) c.obs = u.obs;
+      // obs não é atualizada pela IA — somente pelo usuário manualmente
       aplicadas++;
     }
   });
@@ -1016,20 +1019,17 @@ function renderUsuarios(){
   var users = Object.keys(USUARIOS_LOGIN);
   var rows = users.map(function(u){
     var isAtual = u === usuarioAtual;
+    var btnExcluir = isAtual
+      ? '<span style="font-size:11px;color:var(--tx3)">usuário atual</span>'
+      : '<button style="padding:3px 9px;border-radius:5px;font-size:11px;border:1px solid #FECACA;background:#FEF2F2;color:#991B1B;cursor:pointer" onclick="excluirUsuario(\'' + u + '\')">Excluir</button>';
     return '<tr style="font-size:13px">'
-      +'<td style="padding:10px 14px;font-weight:500">'+u+'</td>'
-      +'<td style="padding:10px 14px;color:var(--tx2)">••••••••</td>'
-      +'<td style="padding:10px 14px">'
-        +'<span style="background:var(--blue-bg);color:var(--blue);padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">'
-        +(u==='admin'?'Admin':u==='diretor'?'Diretor':u==='financeiro'?'Financeiro':'Conciliação')
-        +'</span></td>'
-      +'<td style="padding:10px 14px">'
-        +(isAtual
-          ? '<span style="font-size:11px;color:var(--tx3)">usuário atual</span>'
-          : '<button data-u="'+u+'" onclick="excluirUsuario(this.getAttribute(\"data-u\"))" style="padding:3px 9px;border-radius:5px;font-size:11px;border:1px solid var(--red-bd);background:var(--red-bg);color:var(--red);cursor:pointer">Excluir</button>'
-        )
-      +'</td>'
-      +'</tr>';
+      + '<td style="padding:10px 14px;font-weight:500">' + u + '</td>'
+      + '<td style="padding:10px 14px;color:#6B6960">••••••••</td>'
+      + '<td style="padding:10px 14px"><span style="background:#EEF3FD;color:#1B4FD8;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">'
+      + (u==='admin'?'Admin':u==='diretor'?'Diretor':u==='financeiro'?'Financeiro':'Conciliação')
+      + '</span></td>'
+      + '<td style="padding:10px 14px">' + btnExcluir + '</td>'
+      + '</tr>';
   }).join('');
   document.getElementById('usrBody').innerHTML =
     '<table style="width:100%;border-collapse:collapse">'
@@ -1060,6 +1060,11 @@ function criarUsuario(){
   renderUsuarios();
   registrarLog('CRIAR_USUARIO', 'Usuário criado: '+user+' | Perfil: '+perfil);
   toast('Usuário '+user+' criado! Ele deverá trocar a senha no primeiro acesso.','ok');
+}
+
+function excluirUsuarioById(btn){
+  var id = btn.id.replace('del_','');
+  excluirUsuario(id);
 }
 
 function excluirUsuario(user){
