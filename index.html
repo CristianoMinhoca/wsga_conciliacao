@@ -113,6 +113,27 @@ tbody tr:hover td{background:var(--bg)}
 .mtag{background:var(--blue-bg);color:var(--blue);padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600}
 .exp-btn{padding:5px 11px;border-radius:5px;font-size:11px;font-weight:500;border:1px solid var(--bdr);background:var(--surf);cursor:pointer;color:var(--tx2)}
 .exp-btn:hover{color:var(--tx)}
+
+/* LOGIN */
+.login-overlay{position:fixed;inset:0;background:#F7F6F3;display:flex;align-items:center;justify-content:center;z-index:999}
+.login-box{background:#fff;border:1px solid #E2E0D8;border-radius:16px;padding:40px;width:380px;box-shadow:0 4px 24px rgba(0,0,0,.08)}
+.login-logo{width:48px;height:48px;background:#1B4FD8;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:18px;margin:0 auto 20px}
+.login-title{font-size:20px;font-weight:700;text-align:center;color:#1A1917;margin-bottom:6px}
+.login-sub{font-size:13px;color:#9C9A92;text-align:center;margin-bottom:28px}
+.login-label{font-size:11px;font-weight:600;color:#6B6960;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px}
+.login-input{width:100%;border:1px solid #E2E0D8;border-radius:8px;padding:10px 12px;font-size:14px;font-family:inherit;outline:none;color:#1A1917;margin-bottom:16px}
+.login-input:focus{border-color:#1B4FD8}
+.login-btn{width:100%;padding:11px;background:#1B4FD8;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px}
+.login-btn:hover{opacity:.88}
+.login-erro{background:#FEF2F2;border:1px solid #FECACA;color:#991B1B;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:16px;text-align:center;display:none}
+/* LOG MODAL */
+.log-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:300}
+.log-overlay.on{display:flex}
+.log-modal{background:#fff;border-radius:14px;width:700px;max-height:80vh;overflow:hidden;display:flex;flex-direction:column}
+.log-header{padding:16px 20px;border-bottom:1px solid #E2E0D8;display:flex;align-items:center;justify-content:space-between}
+.log-title{font-size:15px;font-weight:600}
+.log-body{overflow-y:auto;flex:1}
+.log-empty{text-align:center;padding:40px;color:#9C9A92;font-size:13px}
 </style>
 </head>
 <body>
@@ -123,7 +144,10 @@ tbody tr:hover td{background:var(--bg)}
   </div>
   <div class="hl" style="gap:8px">
     <span style="background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-bd);border-radius:20px;padding:2px 9px;font-size:11px;font-weight:500">● Multi-usuário</span>
+    <button onclick="abrirLog()" style="padding:5px 11px;border-radius:5px;font-size:11px;font-weight:500;border:1px solid var(--bdr);background:var(--surf);cursor:pointer;color:var(--tx2)">📋 Log</button>
     <button onclick="resetarDados()" style="padding:5px 11px;border-radius:5px;font-size:11px;font-weight:500;border:1px solid var(--red-bd);background:var(--red-bg);cursor:pointer;color:var(--red)">↺ Resetar</button>
+    <button onclick="fazerLogout()" style="padding:5px 11px;border-radius:5px;font-size:11px;font-weight:500;border:1px solid var(--bdr);background:var(--surf);cursor:pointer;color:var(--red)">Sair</button>
+    <span id="userBadge" style="background:var(--green-bg);color:var(--green);border:1px solid var(--green-bd);border-radius:20px;padding:2px 9px;font-size:11px;font-weight:500"></span>
     <button class="exp-btn" onclick="exportCSV()">⬇ Exportar CSV</button>
   </div>
 </header>
@@ -686,6 +710,7 @@ function applyUpdate(){
   pendingUpdate = null;
   buildAll();
   salvarDados();
+  registrarLog('ATUALIZAR_EXTRATO', aplicadas+' conta(s) atualizada(s) via importação de PDF');
   toast(aplicadas+' conta(s) atualizada(s)!','ok');
   if(pendingUpdate && pendingUpdate.resumo) addMsg('ai', pendingUpdate.resumo);
   go('dash', document.getElementById('nb-dash'));
@@ -794,8 +819,115 @@ function resetarDados(){
   localStorage.removeItem('csb_contas');
   contas = CONTAS.map(function(c){return Object.assign({},c,{sE:null});});
   buildAll();
+  registrarLog('RESETAR', 'Todos os saldos resetados para valores originais');
   toast('Dados resetados!','ok');
 }
+
+
+// ── USUÁRIOS ──────────────────────────────────────────
+var USUARIOS_LOGIN = {
+  'admin':      'Admin@2026',
+  'financeiro': 'Fin@2026',
+  'diretor':    'Dir@2026',
+  'conciliacao':'Conc@2026'
+};
+
+var usuarioAtual = null;
+
+function fazerLogin(){
+  var user = document.getElementById('loginUser').value.trim().toLowerCase();
+  var pass = document.getElementById('loginPass').value;
+  if(USUARIOS_LOGIN[user] && USUARIOS_LOGIN[user] === pass){
+    usuarioAtual = user;
+    sessionStorage.setItem('csb_usuario', user);
+    document.getElementById('loginOverlay').style.display = 'none';
+    document.getElementById('userBadge').textContent = '● '+user;
+    registrarLog('LOGIN', 'Acesso ao sistema');
+    buildAll();
+  } else {
+    document.getElementById('loginErro').style.display = 'block';
+    document.getElementById('loginPass').value = '';
+  }
+}
+
+function fazerLogout(){
+  if(!confirm('Deseja sair do sistema?')) return;
+  registrarLog('LOGOUT', 'Saiu do sistema');
+  usuarioAtual = null;
+  sessionStorage.removeItem('csb_usuario');
+  document.getElementById('loginOverlay').style.display = 'flex';
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
+  document.getElementById('loginErro').style.display = 'none';
+  document.getElementById('userBadge').textContent = '';
+}
+
+function verificarSessao(){
+  var saved = sessionStorage.getItem('csb_usuario');
+  if(saved && USUARIOS_LOGIN[saved]){
+    usuarioAtual = saved;
+    document.getElementById('loginOverlay').style.display = 'none';
+    document.getElementById('userBadge').textContent = '● '+saved;
+    return true;
+  }
+  return false;
+}
+
+// ── LOG DE ALTERAÇÕES ─────────────────────────────────
+function registrarLog(acao, detalhe){
+  try{
+    var logs = JSON.parse(localStorage.getItem('csb_logs') || '[]');
+    logs.unshift({
+      data: new Date().toLocaleString('pt-BR'),
+      usuario: usuarioAtual || 'sistema',
+      acao: acao,
+      detalhe: detalhe
+    });
+    // manter só os últimos 500
+    if(logs.length > 500) logs = logs.slice(0, 500);
+    localStorage.setItem('csb_logs', JSON.stringify(logs));
+  }catch(e){ console.log('Erro log:', e); }
+}
+
+function abrirLog(){
+  try{
+    var logs = JSON.parse(localStorage.getItem('csb_logs') || '[]');
+    if(!logs.length){
+      document.getElementById('logBody').innerHTML = '<div class="log-empty">Nenhuma alteração registrada ainda.</div>';
+    } else {
+      var rows = logs.map(function(l){
+        var cor = l.acao==='LOGIN'?'var(--green)':l.acao==='LOGOUT'?'var(--tx3)':l.acao.includes('ERRO')?'var(--red)':'var(--blue)';
+        return '<tr style="font-size:12px">'
+          +'<td style="padding:8px 14px;border-bottom:1px solid var(--bdr);white-space:nowrap;color:var(--tx2)">'+l.data+'</td>'
+          +'<td style="padding:8px 14px;border-bottom:1px solid var(--bdr);font-weight:500">'+l.usuario+'</td>'
+          +'<td style="padding:8px 14px;border-bottom:1px solid var(--bdr)"><span style="color:'+cor+';font-weight:600">'+l.acao+'</span></td>'
+          +'<td style="padding:8px 14px;border-bottom:1px solid var(--bdr);color:var(--tx2)">'+l.detalhe+'</td>'
+          +'</tr>';
+      }).join('');
+      document.getElementById('logBody').innerHTML =
+        '<table style="width:100%;border-collapse:collapse">'
+        +'<thead><tr style="background:var(--bg)">'
+        +'<th style="padding:8px 14px;text-align:left;font-size:10px;font-weight:600;color:var(--tx3);text-transform:uppercase;border-bottom:1px solid var(--bdr)">Data/Hora</th>'
+        +'<th style="padding:8px 14px;text-align:left;font-size:10px;font-weight:600;color:var(--tx3);text-transform:uppercase;border-bottom:1px solid var(--bdr)">Usuário</th>'
+        +'<th style="padding:8px 14px;text-align:left;font-size:10px;font-weight:600;color:var(--tx3);text-transform:uppercase;border-bottom:1px solid var(--bdr)">Ação</th>'
+        +'<th style="padding:8px 14px;text-align:left;font-size:10px;font-weight:600;color:var(--tx3);text-transform:uppercase;border-bottom:1px solid var(--bdr)">Detalhe</th>'
+        +'</tr></thead><tbody>'+rows+'</tbody></table>';
+    }
+  }catch(e){
+    document.getElementById('logBody').innerHTML = '<div class="log-empty">Erro ao carregar log.</div>';
+  }
+  document.getElementById('logOverlay').classList.add('on');
+}
+
+function fecharLog(){ document.getElementById('logOverlay').classList.remove('on'); }
+
+function limparLog(){
+  if(!confirm('Limpar todo o histórico de alterações?')) return;
+  localStorage.removeItem('csb_logs');
+  fecharLog();
+  toast('Log limpo!','ok');
+}
+
 
 // ── INIT — roda imediatamente, sem esperar evento ──────
 function buildAll(){
@@ -806,8 +938,12 @@ function buildAll(){
   buildEmpFilter();
 }
 
-// carrega dados salvos
-carregarDados();
+// verifica sessão e carrega dados
+if(!verificarSessao()){
+  // aguarda login
+} else {
+  carregarDados();
+}
 
 // data no header
 (function(){
@@ -817,8 +953,38 @@ carregarDados();
   document.getElementById('dataHoje').textContent=ds;
 })();
 
-// renderiza direto
-buildAll();
+// só renderiza se logado
+if(usuarioAtual){ carregarDados(); buildAll(); }
 </script>
+
+<!-- TELA DE LOGIN -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <div class="login-logo">CB</div>
+    <div class="login-title">Conciliação Bancária</div>
+    <div class="login-sub">Grupo Águia — CSC Financeiro</div>
+    <div class="login-erro" id="loginErro">Usuário ou senha incorretos.</div>
+    <label class="login-label">Usuário</label>
+    <input class="login-input" id="loginUser" type="text" placeholder="seu usuário" autocomplete="username">
+    <label class="login-label">Senha</label>
+    <input class="login-input" id="loginPass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')fazerLogin()">
+    <button class="login-btn" onclick="fazerLogin()">Entrar</button>
+  </div>
+</div>
+
+<!-- MODAL LOG -->
+<div class="log-overlay" id="logOverlay" onclick="if(event.target===this)fecharLog()">
+  <div class="log-modal">
+    <div class="log-header">
+      <div class="log-title">📋 Log de Alterações</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button onclick="limparLog()" style="padding:4px 10px;border-radius:5px;font-size:11px;border:1px solid #FECACA;background:#FEF2F2;color:#991B1B;cursor:pointer">Limpar log</button>
+        <button onclick="fecharLog()" style="width:26px;height:26px;border-radius:5px;border:1px solid #E2E0D8;background:none;cursor:pointer;font-size:14px;color:#9C9A92">×</button>
+      </div>
+    </div>
+    <div class="log-body" id="logBody"></div>
+  </div>
+</div>
+
 </body>
 </html>
