@@ -161,6 +161,7 @@ tbody tr:hover td{background:var(--bg)}
   <div class="sdiv"></div>
   <div class="slbl">IA</div>
   <button class="nav" id="nb-chat" onclick="go('chat',this)">💬 Chat com IA</button>
+  <button class="nav" id="nb-usr" onclick="go('usuarios',this)">👤 Usuários</button>
   <div class="sdiv"></div>
   <div class="slbl">Empresas</div>
   <div id="empFilter"></div>
@@ -259,6 +260,33 @@ tbody tr:hover td{background:var(--bg)}
   </div>
 </div>
 
+
+<div class="pg" id="pg-usuarios">
+  <div class="ptitle">Gestão de Usuários</div>
+  <div class="tsec">
+    <div class="thd"><div class="ttl">Usuários cadastrados</div></div>
+    <div id="usrBody"></div>
+  </div>
+  <div class="mc" style="margin-top:16px">
+    <div class="ich" style="margin-bottom:8px">
+      <div class="ico b">➕</div>
+      <div><div class="iname">Novo usuário</div><div class="isub">Preencha os dados abaixo</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:end">
+      <div><div class="mlbl">Usuário</div><input class="min" id="newUser" placeholder="ex: joao.silva"></div>
+      <div><div class="mlbl">Senha</div><input class="min" id="newPass" type="password" placeholder="mínimo 6 caracteres"></div>
+      <div><div class="mlbl">Perfil</div>
+        <select class="min" id="newPerfil">
+          <option value="conciliacao">Conciliação</option>
+          <option value="financeiro">Financeiro</option>
+          <option value="diretor">Diretor</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      <button class="btn-add" onclick="criarUsuario()">+ Criar</button>
+    </div>
+  </div>
+</div>
 </main>
 </div>
 
@@ -344,6 +372,7 @@ function go(p,btn){
   document.querySelectorAll('.nav').forEach(function(x){x.classList.remove('on');});
   document.getElementById('pg-'+p).classList.add('on');
   if(btn) btn.classList.add('on');
+  if(p==='usuarios') renderUsuarios();
 }
 function setFb(btn){
   document.querySelectorAll('.fb').forEach(function(b){b.classList.remove('on');});
@@ -392,7 +421,7 @@ function renderT(){
       +'<td class="'+dc+'">'+brl(d)+'</td>'
       +'<td class="vr">'+brl(sE)+'</td>'
       +'<td><span class="sbg '+s+'">'+(s==='c'?'✓ OK':'⚠ Dif.')+'</span></td>'
-      +'<td class="obsc"><input class="obsi" value="'+c.obs+'" placeholder="..." onchange="updO('+c.id+',this.value)"></td>'
+      +'<td class="obsc"><span style="font-size:11px;color:var(--tx2)">'+( c.obs||'—' )+'</span> <button onclick="editarObs('+c.id+')" style="padding:1px 6px;border-radius:4px;border:1px solid var(--bdr);background:none;cursor:pointer;font-size:10px;color:var(--tx3)">✏</button></td>'
       +'<td><button class="abtn" onclick="openM('+c.id+')">Ver</button></td>'
       +'</tr>';
   }).join('');
@@ -929,6 +958,111 @@ function limparLog(){
 }
 
 
+
+// ── GESTÃO DE USUÁRIOS ────────────────────────────────
+function carregarUsuarios(){
+  try{
+    var saved = localStorage.getItem('csb_usuarios');
+    if(saved) USUARIOS_LOGIN = Object.assign({}, USUARIOS_LOGIN, JSON.parse(saved));
+  }catch(e){}
+}
+
+function salvarUsuarios(){
+  localStorage.setItem('csb_usuarios', JSON.stringify(USUARIOS_LOGIN));
+}
+
+function renderUsuarios(){
+  var users = Object.keys(USUARIOS_LOGIN);
+  var rows = users.map(function(u){
+    var isAtual = u === usuarioAtual;
+    return '<tr style="font-size:13px">'
+      +'<td style="padding:10px 14px;font-weight:500">'+u+'</td>'
+      +'<td style="padding:10px 14px;color:var(--tx2)">••••••••</td>'
+      +'<td style="padding:10px 14px">'
+        +'<span style="background:var(--blue-bg);color:var(--blue);padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">'
+        +(u==='admin'?'Admin':u==='diretor'?'Diretor':u==='financeiro'?'Financeiro':'Conciliação')
+        +'</span></td>'
+      +'<td style="padding:10px 14px">'
+        +(isAtual
+          ? '<span style="font-size:11px;color:var(--tx3)">usuário atual</span>'
+          : '<button onclick="excluirUsuario(''+u+'')" style="padding:3px 9px;border-radius:5px;font-size:11px;border:1px solid var(--red-bd);background:var(--red-bg);color:var(--red);cursor:pointer">Excluir</button>'
+        )
+      +'</td>'
+      +'</tr>';
+  }).join('');
+  document.getElementById('usrBody').innerHTML =
+    '<table style="width:100%;border-collapse:collapse">'
+    +'<thead><tr style="background:var(--bg)">'
+    +'<th style="padding:8px 14px;text-align:left;font-size:10px;font-weight:600;color:var(--tx3);text-transform:uppercase;border-bottom:1px solid var(--bdr)">Usuário</th>'
+    +'<th style="padding:8px 14px;text-align:left;font-size:10px;font-weight:600;color:var(--tx3);text-transform:uppercase;border-bottom:1px solid var(--bdr)">Senha</th>'
+    +'<th style="padding:8px 14px;text-align:left;font-size:10px;font-weight:600;color:var(--tx3);text-transform:uppercase;border-bottom:1px solid var(--bdr)">Perfil</th>'
+    +'<th style="padding:8px 14px;text-align:left;font-size:10px;font-weight:600;color:var(--tx3);text-transform:uppercase;border-bottom:1px solid var(--bdr)">Ações</th>'
+    +'</tr></thead>'
+    +'<tbody>'+rows+'</tbody></table>';
+}
+
+function criarUsuario(){
+  var user = document.getElementById('newUser').value.trim().toLowerCase();
+  var pass = document.getElementById('newPass').value;
+  var perfil = document.getElementById('newPerfil').value;
+  if(!user || !pass){ toast('Preencha usuário e senha','err'); return; }
+  if(pass.length < 6){ toast('Senha mínimo 6 caracteres','err'); return; }
+  if(USUARIOS_LOGIN[user]){ toast('Usuário já existe','err'); return; }
+  USUARIOS_LOGIN[user] = pass;
+  salvarUsuarios();
+  document.getElementById('newUser').value='';
+  document.getElementById('newPass').value='';
+  renderUsuarios();
+  registrarLog('CRIAR_USUARIO', 'Usuário criado: '+user+' | Perfil: '+perfil);
+  toast('Usuário '+user+' criado!','ok');
+}
+
+function excluirUsuario(user){
+  if(!confirm('Excluir usuário "'+user+'"?')) return;
+  delete USUARIOS_LOGIN[user];
+  salvarUsuarios();
+  renderUsuarios();
+  registrarLog('EXCLUIR_USUARIO', 'Usuário excluído: '+user);
+  toast('Usuário excluído','ok');
+}
+
+// ── EDITAR OBSERVAÇÃO ─────────────────────────────────
+function editarObs(id){
+  var c = contas.filter(function(x){return x.id===id;})[0];
+  if(!c) return;
+  var obsAtual = c.obs || '';
+
+  // criar modal simples de edição
+  var div = document.createElement('div');
+  div.id = 'obsModal';
+  div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:400';
+  div.innerHTML = '<div style="background:#fff;border-radius:12px;padding:24px;width:440px;box-shadow:0 8px 32px rgba(0,0,0,.14)">'
+    +'<div style="font-size:14px;font-weight:600;margin-bottom:4px">Editar Observação</div>'
+    +'<div style="font-size:12px;color:var(--tx2);margin-bottom:14px">'+c.emp+' | '+c.banco+'</div>'
+    +'<textarea id="obsTexto" style="width:100%;border:1px solid var(--bdr);border-radius:7px;padding:9px 11px;font-size:13px;font-family:inherit;outline:none;resize:vertical;min-height:80px">'+obsAtual+'</textarea>'
+    +'<div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end">'
+      +'<button onclick="document.getElementById('obsModal').remove()" style="padding:7px 16px;border:1px solid var(--bdr);background:none;border-radius:6px;cursor:pointer;font-size:13px;color:var(--tx2)">Cancelar</button>'
+      +'<button onclick="salvarObs('+id+')" style="padding:7px 18px;background:var(--blue);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">Salvar</button>'
+    +'</div>'
+  +'</div>';
+  document.body.appendChild(div);
+  document.getElementById('obsTexto').focus();
+}
+
+function salvarObs(id){
+  var c = contas.filter(function(x){return x.id===id;})[0];
+  if(!c) return;
+  var obsAnterior = c.obs || '';
+  var obsNova = document.getElementById('obsTexto').value.trim();
+  c.obs = obsNova;
+  document.getElementById('obsModal').remove();
+  salvarDados();
+  renderT();
+  registrarLog('EDITAR_OBS', c.emp+' | '+c.banco+' | Obs: "'+obsNova+'" (antes: "'+obsAnterior+'")');
+  toast('Observação salva','ok');
+}
+
+
 // ── INIT — roda imediatamente, sem esperar evento ──────
 function buildAll(){
   renderCards();
@@ -937,6 +1071,9 @@ function buildAll(){
   renderFaturas();
   buildEmpFilter();
 }
+
+// carrega usuários salvos
+carregarUsuarios();
 
 // verifica sessão e carrega dados
 if(!verificarSessao()){
