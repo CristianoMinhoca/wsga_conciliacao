@@ -868,7 +868,7 @@ function fazerLogin(){
   var pass = document.getElementById('loginPass').value;
   if(USUARIOS_LOGIN[user] && USUARIOS_LOGIN[user] === pass){
     usuarioAtual = user;
-    sessionStorage.setItem('csb_usuario', user);
+    localStorage.setItem('csb_usuario', user);
     document.getElementById('loginOverlay').style.display = 'none';
     document.getElementById('userBadge').textContent = '● '+user;
     registrarLog('LOGIN', 'Acesso ao sistema');
@@ -883,7 +883,7 @@ function fazerLogout(){
   if(!confirm('Deseja sair do sistema?')) return;
   registrarLog('LOGOUT', 'Saiu do sistema');
   usuarioAtual = null;
-  sessionStorage.removeItem('csb_usuario');
+  localStorage.removeItem('csb_usuario');
   document.getElementById('loginOverlay').style.display = 'flex';
   document.getElementById('loginUser').value = '';
   document.getElementById('loginPass').value = '';
@@ -892,7 +892,7 @@ function fazerLogout(){
 }
 
 function verificarSessao(){
-  var saved = sessionStorage.getItem('csb_usuario');
+  var saved = localStorage.getItem('csb_usuario');
   if(saved && USUARIOS_LOGIN[saved]){
     usuarioAtual = saved;
     document.getElementById('loginOverlay').style.display = 'none';
@@ -1076,10 +1076,9 @@ function buildAll(){
 carregarUsuarios();
 
 // verifica sessão e carrega dados
-if(!verificarSessao()){
-  // aguarda login
-} else {
+if(verificarSessao()){
   carregarDados();
+  buildAll();
 }
 
 // data no header
@@ -1090,8 +1089,7 @@ if(!verificarSessao()){
   document.getElementById('dataHoje').textContent=ds;
 })();
 
-// só renderiza se logado
-if(usuarioAtual){ carregarDados(); buildAll(); }
+// já executado acima se logado
 </script>
 
 <!-- TELA DE LOGIN -->
