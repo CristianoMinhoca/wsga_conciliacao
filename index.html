@@ -1026,7 +1026,7 @@ function renderUsuarios(){
       +'<td style="padding:10px 14px">'
         +(isAtual
           ? '<span style="font-size:11px;color:var(--tx3)">usuário atual</span>'
-          : '<button onclick="excluirUsuario(''+u+'')" style="padding:3px 9px;border-radius:5px;font-size:11px;border:1px solid var(--red-bd);background:var(--red-bg);color:var(--red);cursor:pointer">Excluir</button>'
+          : '<button data-u="'+u+'" onclick="excluirUsuario(this.getAttribute(\"data-u\"))" style="padding:3px 9px;border-radius:5px;font-size:11px;border:1px solid var(--red-bd);background:var(--red-bg);color:var(--red);cursor:pointer">Excluir</button>'
         )
       +'</td>'
       +'</tr>';
@@ -1086,13 +1086,15 @@ function editarObs(id){
     +'<div style="font-size:12px;color:var(--tx2);margin-bottom:14px">'+c.emp+' | '+c.banco+'</div>'
     +'<textarea id="obsTexto" style="width:100%;border:1px solid var(--bdr);border-radius:7px;padding:9px 11px;font-size:13px;font-family:inherit;outline:none;resize:vertical;min-height:80px">'+obsAtual+'</textarea>'
     +'<div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end">'
-      +'<button onclick="document.getElementById('obsModal').remove()" style="padding:7px 16px;border:1px solid var(--bdr);background:none;border-radius:6px;cursor:pointer;font-size:13px;color:var(--tx2)">Cancelar</button>'
+      +'<button onclick="fecharObsModal()" style="padding:7px 16px;border:1px solid var(--bdr);background:none;border-radius:6px;cursor:pointer;font-size:13px;color:var(--tx2)">Cancelar</button>'
       +'<button onclick="salvarObs('+id+')" style="padding:7px 18px;background:var(--blue);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">Salvar</button>'
     +'</div>'
   +'</div>';
   document.body.appendChild(div);
   document.getElementById('obsTexto').focus();
 }
+
+function fecharObsModal(){ var m=document.getElementById('obsModal'); if(m) m.remove(); }
 
 function salvarObs(id){
   var c = contas.filter(function(x){return x.id===id;})[0];
