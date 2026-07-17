@@ -123,8 +123,7 @@ tbody tr:hover td{background:var(--bg)}
   </div>
   <div class="hl" style="gap:8px">
     <span style="background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-bd);border-radius:20px;padding:2px 9px;font-size:11px;font-weight:500">● Multi-usuário</span>
-    <a href="/logs" style="padding:5px 11px;border-radius:5px;font-size:11px;font-weight:500;border:1px solid var(--bdr);background:var(--surf);cursor:pointer;color:var(--tx2);text-decoration:none">📋 Logs</a>
-    <a href="/logout" style="padding:5px 11px;border-radius:5px;font-size:11px;font-weight:500;border:1px solid var(--bdr);background:var(--surf);cursor:pointer;color:var(--red);text-decoration:none">Sair</a>
+    <button onclick="resetarDados()" style="padding:5px 11px;border-radius:5px;font-size:11px;font-weight:500;border:1px solid var(--red-bd);background:var(--red-bg);cursor:pointer;color:var(--red)">↺ Resetar</button>
     <button class="exp-btn" onclick="exportCSV()">⬇ Exportar CSV</button>
   </div>
 </header>
@@ -490,7 +489,7 @@ function addMan(){
   var id=Date.now();
   contas.push({id:id,emp:e,banco:b,ag:'',conta:'',sB:sB,sC:sC,sE:sC,pag:0,obs:''});
   ['mE','mBk','mSB','mSC'].forEach(function(x){document.getElementById(x).value='';});
-  buildAll(); toast('Conta adicionada','ok');
+  buildAll(); salvarDados(); toast('Conta adicionada','ok');
 }
 
 // ── UPLOAD ──────────────────────────────────────────────
@@ -621,7 +620,7 @@ function showReviewModal(parsed){
     var nome  = casou ? c.emp : (u.emp||u.conta||'Desconhecida');
     var banco = casou ? c.banco : (u.banco||'—');
     var sAtual= casou ? brl(c.sB) : '—';
-    var sNovo = u.saldo_erp!=null ? brl(u.saldo_erp) : (u.saldo_banco!=null?brl(u.saldo_banco):'—');
+    var sNovo = u.saldo_banco!=null ? brl(u.saldo_banco) : '—';
     var cor   = casou ? 'var(--green)' : 'var(--amber)';
     var status= casou ? '✓ Casou' : '⚠ Sem match';
     return '<tr style="font-size:12px">'
@@ -677,7 +676,7 @@ function applyUpdate(){
     if(!c) c = matchConta({conta:u.conta||'',banco:u.banco||'',emp:u.emp||''});
     if(c){
       if(u.saldo_banco!=null && u.saldo_banco!==0) c.sB = u.saldo_banco;
-      c.sE = (u.saldo_erp!=null) ? u.saldo_erp : c.sE;
+      c.sE = (u.saldo_erp!=null) ? Number(u.saldo_erp) : c.sE;
       if(u.obs) c.obs = u.obs;
       aplicadas++;
     }
@@ -686,6 +685,7 @@ function applyUpdate(){
   closeM();
   pendingUpdate = null;
   buildAll();
+  salvarDados();
   toast(aplicadas+' conta(s) atualizada(s)!','ok');
   if(pendingUpdate && pendingUpdate.resumo) addMsg('ai', pendingUpdate.resumo);
   go('dash', document.getElementById('nb-dash'));
@@ -764,6 +764,39 @@ function toast(msg,type){
   setTimeout(function(){t.remove();},3000);
 }
 
+// ── PERSISTÊNCIA localStorage ────────────────────────────
+function salvarDados(){
+  try{
+    var dados = contas.map(function(c){return {id:c.id,sB:c.sB,sE:c.sE,obs:c.obs};});
+    localStorage.setItem('csb_contas', JSON.stringify(dados));
+  }catch(e){ console.log('Erro ao salvar:', e); }
+}
+
+function carregarDados(){
+  try{
+    var saved = localStorage.getItem('csb_contas');
+    if(!saved) return;
+    var dados = JSON.parse(saved);
+    dados.forEach(function(d){
+      var c = contas.filter(function(x){return x.id===d.id;})[0];
+      if(c){
+        c.sB = d.sB!=null ? d.sB : c.sB;
+        c.sE = d.sE!=null ? d.sE : c.sE;
+        c.obs = d.obs || c.obs;
+      }
+    });
+    console.log('Dados carregados do localStorage');
+  }catch(e){ console.log('Erro ao carregar:', e); }
+}
+
+function resetarDados(){
+  if(!confirm('Tem certeza que deseja resetar todos os saldos para os valores originais?')) return;
+  localStorage.removeItem('csb_contas');
+  contas = CONTAS.map(function(c){return Object.assign({},c,{sE:null});});
+  buildAll();
+  toast('Dados resetados!','ok');
+}
+
 // ── INIT — roda imediatamente, sem esperar evento ──────
 function buildAll(){
   renderCards();
@@ -772,6 +805,9 @@ function buildAll(){
   renderFaturas();
   buildEmpFilter();
 }
+
+// carrega dados salvos
+carregarDados();
 
 // data no header
 (function(){
