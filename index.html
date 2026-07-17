@@ -114,6 +114,10 @@ tbody tr:hover td{background:var(--bg)}
 .exp-btn{padding:5px 11px;border-radius:5px;font-size:11px;font-weight:500;border:1px solid var(--bdr);background:var(--surf);cursor:pointer;color:var(--tx2)}
 .exp-btn:hover{color:var(--tx)}
 
+/* TROCA DE SENHA */
+.senha-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:1000}
+.senha-overlay.on{display:flex}
+.senha-box{background:#fff;border-radius:14px;padding:32px;width:360px;box-shadow:0 8px 32px rgba(0,0,0,.15)}
 /* LOGIN */
 .login-overlay{position:fixed;inset:0;background:#F7F6F3;display:flex;align-items:center;justify-content:center;z-index:999}
 .login-box{background:#fff;border:1px solid #E2E0D8;border-radius:16px;padding:40px;width:380px;box-shadow:0 4px 24px rgba(0,0,0,.08)}
@@ -868,15 +872,52 @@ function fazerLogin(){
   var pass = document.getElementById('loginPass').value;
   if(USUARIOS_LOGIN[user] && USUARIOS_LOGIN[user] === pass){
     usuarioAtual = user;
-    localStorage.setItem('csb_usuario', user);
-    document.getElementById('loginOverlay').style.display = 'none';
-    document.getElementById('userBadge').textContent = '● '+user;
-    registrarLog('LOGIN', 'Acesso ao sistema');
-    buildAll();
+    document.getElementById('loginErro').style.display = 'none';
+
+    // verificar se é primeiro login (precisa trocar senha)
+    var primeiroLogin = JSON.parse(localStorage.getItem('csb_primeiro_login') || '{}');
+    if(primeiroLogin[user]){
+      // esconde login, mostra troca de senha
+      document.getElementById('loginOverlay').style.display = 'none';
+      document.getElementById('senhaOverlay').classList.add('on');
+      document.getElementById('novaSenha1').focus();
+      return;
+    }
+
+    // login normal
+    entrarNoSistema(user);
   } else {
     document.getElementById('loginErro').style.display = 'block';
     document.getElementById('loginPass').value = '';
   }
+}
+
+function entrarNoSistema(user){
+  usuarioAtual = user;
+  localStorage.setItem('csb_usuario', user);
+  document.getElementById('loginOverlay').style.display = 'none';
+  document.getElementById('senhaOverlay').classList.remove('on');
+  document.getElementById('userBadge').textContent = '● '+user;
+  registrarLog('LOGIN', 'Acesso ao sistema');
+  carregarDados();
+  buildAll();
+}
+
+function confirmarTrocaSenha(){
+  var s1 = document.getElementById('novaSenha1').value;
+  var s2 = document.getElementById('novaSenha2').value;
+  var erroEl = document.getElementById('senhaErro');
+  if(s1.length < 6){ erroEl.textContent='Senha deve ter mínimo 6 caracteres'; erroEl.style.display='block'; return; }
+  if(s1 !== s2){ erroEl.textContent='As senhas não conferem'; erroEl.style.display='block'; return; }
+  // salvar nova senha
+  USUARIOS_LOGIN[usuarioAtual] = s1;
+  salvarUsuarios();
+  // remover flag de primeiro login
+  var primeiroLogin = JSON.parse(localStorage.getItem('csb_primeiro_login') || '{}');
+  delete primeiroLogin[usuarioAtual];
+  localStorage.setItem('csb_primeiro_login', JSON.stringify(primeiroLogin));
+  registrarLog('TROCAR_SENHA', 'Usuário trocou a senha no primeiro acesso');
+  entrarNoSistema(usuarioAtual);
 }
 
 function fazerLogout(){
@@ -1010,11 +1051,15 @@ function criarUsuario(){
   if(USUARIOS_LOGIN[user]){ toast('Usuário já existe','err'); return; }
   USUARIOS_LOGIN[user] = pass;
   salvarUsuarios();
+  // marcar como primeiro login
+  var primeiroLogin = JSON.parse(localStorage.getItem('csb_primeiro_login') || '{}');
+  primeiroLogin[user] = true;
+  localStorage.setItem('csb_primeiro_login', JSON.stringify(primeiroLogin));
   document.getElementById('newUser').value='';
   document.getElementById('newPass').value='';
   renderUsuarios();
   registrarLog('CRIAR_USUARIO', 'Usuário criado: '+user+' | Perfil: '+perfil);
-  toast('Usuário '+user+' criado!','ok');
+  toast('Usuário '+user+' criado! Ele deverá trocar a senha no primeiro acesso.','ok');
 }
 
 function excluirUsuario(user){
@@ -1072,25 +1117,43 @@ function buildAll(){
   buildEmpFilter();
 }
 
-// carrega usuários salvos
-carregarUsuarios();
+// ── INICIALIZAÇÃO ──────────────────────────────────────
+(function iniciar(){
+  // data no header
+  var d = new Date();
+  var ds = d.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+  document.getElementById('hdate').textContent = ds;
+  document.getElementById('dataHoje').textContent = ds;
 
-// verifica sessão e carrega dados
-if(verificarSessao()){
-  carregarDados();
-  buildAll();
-}
+  // carrega usuários do localStorage
+  carregarUsuarios();
 
-// data no header
-(function(){
-  var d=new Date();
-  var ds=d.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
-  document.getElementById('hdate').textContent=ds;
-  document.getElementById('dataHoje').textContent=ds;
+  // verifica se há sessão salva
+  var userSalvo = localStorage.getItem('csb_usuario');
+  if(userSalvo && USUARIOS_LOGIN[userSalvo]){
+    usuarioAtual = userSalvo;
+    document.getElementById('loginOverlay').style.display = 'none';
+    document.getElementById('userBadge').textContent = '● ' + userSalvo;
+    carregarDados();
+    buildAll();
+  }
+  // se não, a tela de login já está visível por padrão
 })();
-
-// já executado acima se logado
 </script>
+
+<!-- MODAL TROCA DE SENHA -->
+<div class="senha-overlay" id="senhaOverlay">
+  <div class="senha-box">
+    <div style="font-size:18px;font-weight:700;margin-bottom:6px">🔐 Trocar senha</div>
+    <div style="font-size:13px;color:var(--tx2);margin-bottom:20px">É seu primeiro acesso. Por segurança, defina uma nova senha.</div>
+    <label class="login-label">Nova senha</label>
+    <input class="login-input" id="novaSenha1" type="password" placeholder="mínimo 6 caracteres">
+    <label class="login-label">Confirmar nova senha</label>
+    <input class="login-input" id="novaSenha2" type="password" placeholder="repita a senha" onkeydown="if(event.key==='Enter')confirmarTrocaSenha()">
+    <div id="senhaErro" style="color:var(--red);font-size:12px;margin-bottom:12px;display:none"></div>
+    <button class="login-btn" onclick="confirmarTrocaSenha()">Salvar nova senha</button>
+  </div>
+</div>
 
 <!-- TELA DE LOGIN -->
 <div class="login-overlay" id="loginOverlay">
