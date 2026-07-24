@@ -313,7 +313,7 @@ var CONTAS = [
   {id:5,  emp:'PRESC VIAGENS E TURISMO LTDA 27',       banco:'RENDIMENTO/MOV',    ag:'001',  conta:'161926000-4',  sB:52.54,      sC:52.54,         pag:0,       obs:''},
   {id:6,  emp:'PRESC VIAG E TUR - CARTAO 27',          banco:'BRADESCO',          ag:'3381', conta:'13315-9',      sB:1853.87,    sC:1853.87,       pag:0,       obs:''},
   {id:7,  emp:'PRESC VIAGENS E TURISMO LTDA 27',       banco:'BRADESCO',          ag:'3381', conta:'24232-2',      sB:6963.75,    sC:6963.75,       pag:0,       obs:''},
-  {id:8,  emp:'PRESC/CBF EMPRESA 69',                  banco:'BRADESCO',          ag:'3381', conta:'25890-3',      sB:303283.23,  sC:303182.05,     pag:-4149.5, obs:'Pag -4.149,50'},
+  {id:8,  emp:'PRESC/CBF EMPRESA 69',                  banco:'BRADESCO',          ag:'3381', conta:'25890-3',      sB:436843.47,  sC:436742.29,     pag:-4149.5, obs:'Pag -4.149,50 | A conciliar: R$101,18'},
   {id:9,  emp:'PRESC/CBF EMP 69 - CBF',                banco:'RENDIMENTO',        ag:'001',  conta:'0520187005',   sB:3157002.34, sC:-5484281.10,   pag:0,       obs:'ATENÇÃO: saldo a conciliar negativo'},
   {id:10, emp:'PRESC/CBF EMP 69 - APLIC.',             banco:'REND/APLICACAO',    ag:'001',  conta:'0520187005A',  sB:0,          sC:0,             pag:0,       obs:''},
   {id:11, emp:'PRESC/CBF EMP 69 Reservas',             banco:'SANTANDER/Reservas',ag:'3439', conta:'130042335',    sB:1770983.73, sC:10612267.17,   pag:0,       obs:'Conciliar > Banco'},
@@ -636,17 +636,13 @@ async function processFiles(){
     }
     var ctx_texto = payload.contas.map(function(c){return 'ID:'+c.id+'|EMP:'+c.emp+'|BANCO:'+c.banco+'|AG:'+(c.ag||'')+'|CONTA:'+c.conta+'|saldo_banco:'+c.sB+'|saldo_erp:'+c.sE;}).join('\n');
     content.push({type:'text',text:'Você é analista de conciliação bancária.\nAnalise os extratos e compare com as contas abaixo.\n\nCONTAS CADASTRADAS:\n'+ctx_texto+'\n\nINSTRUÇÕES:\n1. Identifique cada conta pelo número, banco ou nome.\n2. saldo_banco = último saldo do EXTRATO NO DIA (não use Saldo Inicial).\n3. REGRA CRITICA saldo_erp: Procure a palavra exata A CONCILIAR no extrato.\\n   - Achou A CONCILIAR: use o saldo final dessa seção.\\n   - NAO achou A CONCILIAR: saldo_erp = 0 OBRIGATORIAMENTE.\\n   NUNCA copie o saldo_banco para saldo_erp. Se nao houver A CONCILIAR, saldo_erp = 0.\n4. NAO inclua campo obs no JSON. Retorne SOMENTE JSON puro sem markdown:\n{\n  \"atualizacoes\":[{\"id\":0,\"conta\":\"numero\",\"emp\":\"nome\",\"banco\":\"banco\",\"saldo_banco\":0.00,\"saldo_erp\":0.00,}],\n  \"nao_encontradas\":[\"conta não casada\"],\n  \"resumo\":\"análise em 2 frases\"\n}'});
-    var res=await fetch('https://api.anthropic.com/v1/messages',{
+    var res=await fetch('https://hardy-dating-overhang.ngrok-free.dev/api/processar',{
       method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':'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','anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:4096,messages:[{role:'user',content:content}]})
+      headers:{'Content-Type':'application/json','ngrok-skip-browser-warning':'true'},
+      body:JSON.stringify(payload)
     });
-    if(!res.ok) throw new Error('Erro API: '+res.status);
-    var data=await res.json();
-    var raw=data.content.filter(function(b){return b.type==='text';}).map(function(b){return b.text;}).join('');
-    var parsed;
-    try{parsed=JSON.parse(raw.replace(/```json|```/g,'').trim());}
-    catch(e){throw new Error('Resposta inválida da IA');}
+    if(!res.ok) throw new Error('Erro servidor: '+res.status);
+    var parsed=await res.json();
     nxt();
     if(parsed.erro) throw new Error(parsed.erro);
 
@@ -762,15 +758,13 @@ async function sendChat(){
     return c.emp+'|'+c.banco+'|Banco:'+brl(c.sB)+'|ERP:'+brl(c.sE!=null?c.sE:c.sC)+'|Diff:'+brl(df(c))+'|'+(st(c)==='c'?'OK':'DIVERGENTE');
   }).join('\n');
   try{
-    var res=await fetch('https://api.anthropic.com/v1/messages',{
+    var res=await fetch('https://hardy-dating-overhang.ngrok-free.dev/api/chat',{
       method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':'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','anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:800,
-        messages:[{role:'user',content:'Analista financeiro CSC. Dados:\n'+ctx+'\nPergunta: '+msg+'\nResponda em portugues, objetivo.'}]
-      })
+      headers:{'Content-Type':'application/json','ngrok-skip-browser-warning':'true'},
+      body:JSON.stringify({mensagem:msg,contexto:ctx})
     });
     var data=await res.json();
-    addMsg('ai',data.content.filter(function(b){return b.type==='text';}).map(function(b){return b.text;}).join(''));
+    addMsg('ai', data.resposta || data.erro || 'Sem resposta.');
   }catch(e){addMsg('ai','Erro de conexao.');}
   document.getElementById('csnd').disabled=false;
 }
