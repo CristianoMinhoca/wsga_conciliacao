@@ -1,4 +1,4 @@
 [[headers]]
   for = "/*"
   [headers.values]
-    Content-Security-Policy = "default-src 'self' 'unsafe-inline' 'unsafe-eval' https://api.anthropic.com"
+    Content-Security-Policy = "default-src 'self' 'unsafe-inline' 'unsafe-eval' https://api.anthropic.com https://hardy-dating-overhang.ngrok-free.dev; connect-src 'self' https://api.anthropic.com https://hardy-dating-overhang.ngrok-free.dev"
